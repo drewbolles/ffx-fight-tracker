@@ -346,7 +346,13 @@ export default function Home() {
           </ul>
         </form>
       </div>
-      <ToastContainer autoClose={1500} newestOnTop toastClassName="font-bold" />
+      <ToastContainer
+        autoClose={1500}
+        newestOnTop
+        toastClassName="font-bold"
+        pauseOnHover={false}
+        pauseOnFocusLoss={false}
+      />
     </>
   );
 }
