@@ -1,6 +1,9 @@
+import 'react-toastify/dist/ReactToastify.css';
+
 import * as React from 'react';
 
 import { FaCheck, FaTimes } from 'react-icons/fa';
+import { ToastContainer, ToastContent, toast } from 'react-toastify';
 
 import { GiBroadsword } from 'react-icons/gi';
 import Head from 'next/head';
@@ -115,6 +118,7 @@ function fightReducer(state: FightState, { type }) {
   switch (type) {
     case ReducerAction.SelectSpecial: {
       const config = MOVE_CONFIUGRATION[state.next_move];
+      toast.success(`${state.next_move} used!`);
       return {
         next_move: config.next_move,
         charge: state.charge + config.charge_rate,
@@ -125,6 +129,7 @@ function fightReducer(state: FightState, { type }) {
     case ReducerAction.SelectBasic: {
       const currentConfig = MOVE_CONFIUGRATION[state.next_move];
       const basicConfig = MOVE_CONFIUGRATION[Attack.Basic];
+      toast.success(`${Attack.Basic} used!`);
       return {
         next_move:
           state.next_move === Attack.Basic
@@ -136,6 +141,7 @@ function fightReducer(state: FightState, { type }) {
     }
 
     case ReducerAction.SelectArm: {
+      toast.success(`${Attack.Arm} used!`);
       return {
         ...state,
         charge: 0,
@@ -163,7 +169,7 @@ function Button({
   return (
     <button
       className={classNames(
-        'inline-flex text-white font-bold rounded px-6 h-14 items-center justify-center space-x-2',
+        'inline-flex text-white font-bold rounded px-6 h-14 items-center space-x-2',
         { 'bg-blue-700 ': variant === 'Default' },
         { 'bg-green-700': variant === 'Success' },
         { 'bg-red-700': variant === 'Error' }
@@ -176,6 +182,20 @@ function Button({
   );
 }
 
+const TOASTS: Record<
+  RecordReducerAction,
+  { type: 'success' | 'error'; message: ToastContent }
+> = {
+  RECORD_WIN: {
+    type: 'success',
+    message: 'Win recorded',
+  },
+  RECORD_LOSS: {
+    type: 'error',
+    message: 'Loss recorded',
+  },
+};
+
 export default function Home() {
   const [state, dispatch] = React.useReducer(fightReducer, initialFightState);
   const [record, dispatchRecord] = React.useReducer(
@@ -187,6 +207,9 @@ export default function Home() {
 
   function handleFightRecord(recordType: RecordReducerAction) {
     return () => {
+      const { type, message } = TOASTS[recordType];
+      toast[type](message);
+
       dispatchRecord({
         type: recordType,
         payload: {
@@ -213,7 +236,7 @@ export default function Home() {
             <h2 className="text-3xl flex-grow">Nemesis</h2>
             <div>
               <button
-                className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex"
+                className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex text-sm"
                 onClick={() => {
                   dispatch({ type: ReducerAction.Reset });
                 }}
@@ -239,7 +262,7 @@ export default function Home() {
         >
           <div className="flex flex-col sm:flex-row mb-4">
             <div className="mb-3 sm:mb-0 sm:order-1">
-              <ul className="sm:flex items-center sm:space-x-2">
+              <ul className="sm:flex items-center space-y-1 sm:space-y-0 sm:space-x-2">
                 <li>
                   <strong>Armageddon Charge:</strong> {state.charge}
                 </li>
@@ -289,7 +312,7 @@ export default function Home() {
           </div>
         </form>
         <form
-          className="border-t pt-4"
+          className="border-t pt-6"
           action=""
           onSubmit={(ev) => {
             ev.preventDefault();
@@ -317,6 +340,7 @@ export default function Home() {
           </ul>
         </form>
       </div>
+      <ToastContainer autoClose={1500} newestOnTop toastClassName="font-bold" />
     </>
   );
 }
