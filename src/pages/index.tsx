@@ -163,7 +163,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex flex-col space-y-3">
-            {state.charge === 21 ? (
+            {state.charge >= 21 ? (
               <Button
                 onClick={() => {
                   dispatch({ type: ReducerAction.SelectArm });
