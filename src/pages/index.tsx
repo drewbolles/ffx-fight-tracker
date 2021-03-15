@@ -67,6 +67,10 @@ interface FightState {
   charge: number;
 }
 
+interface FightAction {
+  type: ReducerAction;
+}
+
 const initialFightState: FightState = {
   next_move: Attack.EC,
   previous_moves: [],
@@ -87,7 +91,7 @@ interface RecordState {
 
 interface RecordAction {
   type: RecordReducerAction;
-  payload: FightRecord;
+  payload?: FightRecord;
 }
 
 const initialRecordState: RecordState = {
@@ -95,7 +99,7 @@ const initialRecordState: RecordState = {
   losses: [],
 };
 
-function recordReducer(dispatch: React.Dispatch<{ type: ReducerAction }>) {
+function recordReducer(dispatch: React.Dispatch<FightAction>) {
   return (state: RecordState, { type, payload }: RecordAction) => {
     const handleUpdate = (type: keyof RecordState) => {
       dispatch({ type: ReducerAction.Reset });
@@ -197,11 +201,13 @@ const TOASTS: Record<
 };
 
 export default function Home() {
-  const [state, dispatch] = React.useReducer(fightReducer, initialFightState);
-  const [record, dispatchRecord] = React.useReducer(
-    recordReducer(dispatch),
-    initialRecordState
-  );
+  const [state, dispatch] = React.useReducer<
+    React.Reducer<FightState, FightAction>
+  >(fightReducer, initialFightState);
+
+  const [record, dispatchRecord] = React.useReducer<
+    React.Reducer<RecordState, RecordAction>
+  >(recordReducer(dispatch), initialRecordState);
 
   const config = MOVE_CONFIUGRATION[state.next_move];
 
