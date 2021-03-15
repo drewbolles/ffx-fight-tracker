@@ -143,11 +143,8 @@ export default function Home() {
           }}
           className="flex flex-col"
         >
-          <div className="flex mb-4">
-            <div className="flex-grow">
-              <p className="text-lg">What move did Nemesis just use?</p>
-            </div>
-            <div>
+          <div className="flex flex-col sm:flex-row mb-4">
+            <div className="mb-3 sm:mb-0 sm:order-1">
               <ul className="flex items-center space-x-2">
                 <li>
                   <strong>Armageddon Charge:</strong> {state.charge}
@@ -156,6 +153,9 @@ export default function Home() {
                   <strong>Next Target:</strong> {config.aoe ? 'AOE' : 'Single'}
                 </li>
               </ul>
+            </div>
+            <div className="flex-grow">
+              <p className="text-lg">What move did Nemesis just use?</p>
             </div>
           </div>
           <div className="flex flex-col space-y-3">
