@@ -1,12 +1,16 @@
 import * as React from 'react';
 
+import { FaCheck, FaTimes } from 'react-icons/fa';
+
+import { GiBroadsword } from 'react-icons/gi';
 import Head from 'next/head';
+import classNames from 'classnames';
 
 enum Attack {
   EC = 'Ethereal Cannon',
   US = 'Ultra Spark',
   Arm = 'Armageddon',
-  Basic = 'Basic',
+  Basic = 'Basic Attack',
 }
 
 type MoveConfiguration = Record<
@@ -54,19 +58,60 @@ enum ReducerAction {
   Reset = 'RESET',
 }
 
-interface State {
+interface FightState {
   next_move: Attack;
   previous_moves: Attack[];
   charge: number;
 }
 
-const initialState: State = {
+const initialFightState: FightState = {
   next_move: Attack.EC,
   previous_moves: [],
   charge: 0,
 };
 
-function reducer(state: State, { type }) {
+interface FightRecord {
+  moves: Attack[];
+  timestamp: string;
+}
+
+type RecordReducerAction = 'RECORD_WIN' | 'RECORD_LOSS';
+
+interface RecordState {
+  wins: FightRecord[];
+  losses: FightRecord[];
+}
+
+interface RecordAction {
+  type: RecordReducerAction;
+  payload: FightRecord;
+}
+
+const initialRecordState: RecordState = {
+  wins: [],
+  losses: [],
+};
+
+function recordReducer(dispatch: React.Dispatch<{ type: ReducerAction }>) {
+  return (state: RecordState, { type, payload }: RecordAction) => {
+    const handleUpdate = (type: keyof RecordState) => {
+      dispatch({ type: ReducerAction.Reset });
+      return {
+        ...state,
+        [type]: [...state[type], payload],
+      };
+    };
+
+    switch (type) {
+      case 'RECORD_WIN':
+        return handleUpdate('wins');
+      case 'RECORD_LOSS':
+        return handleUpdate('losses');
+    }
+  };
+}
+
+function fightReducer(state: FightState, { type }) {
   switch (type) {
     case ReducerAction.SelectSpecial: {
       const config = MOVE_CONFIUGRATION[state.next_move];
@@ -99,23 +144,58 @@ function reducer(state: State, { type }) {
     }
 
     case ReducerAction.Reset:
-      return initialState;
+      return initialFightState;
   }
   return state;
 }
 
-function Button(props: React.ComponentProps<'button'>) {
+type ButtonVariants = 'Default' | 'Success' | 'Error';
+
+function Button({
+  variant = 'Default',
+  children,
+  icon,
+  ...rest
+}: React.ComponentProps<'button'> & {
+  variant?: ButtonVariants;
+  icon?: React.ReactNode;
+}) {
   return (
     <button
-      className="inline-flex bg-blue-700 text-white font-bold rounded px-4 h-14 items-center justify-center"
-      {...props}
-    />
+      className={classNames(
+        'inline-flex text-white font-bold rounded px-6 h-14 items-center justify-center space-x-2',
+        { 'bg-blue-700 ': variant === 'Default' },
+        { 'bg-green-700': variant === 'Success' },
+        { 'bg-red-700': variant === 'Error' }
+      )}
+      {...rest}
+    >
+      {icon}
+      <span>{children}</span>
+    </button>
   );
 }
 
 export default function Home() {
-  const [state, dispatch] = React.useReducer(reducer, initialState);
+  const [state, dispatch] = React.useReducer(fightReducer, initialFightState);
+  const [record, dispatchRecord] = React.useReducer(
+    recordReducer(dispatch),
+    initialRecordState
+  );
+
   const config = MOVE_CONFIUGRATION[state.next_move];
+
+  function handleFightRecord(recordType: RecordReducerAction) {
+    return () => {
+      dispatchRecord({
+        type: recordType,
+        payload: {
+          moves: state.previous_moves,
+          timestamp: new Date().toUTCString(),
+        },
+      });
+    };
+  }
 
   return (
     <>
@@ -127,19 +207,29 @@ export default function Home() {
           <h1 className="font-bold">FFX HD Superboss Fight Tracker</h1>
         </div>
       </header>
-      <div className="container px-4 mx-auto py-6 max-w-screen-md">
-        <header className="flex items-center border-b pb-3 mb-4">
-          <h2 className="text-3xl flex-grow">Nemesis</h2>
-          <div>
-            <button
-              className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex"
-              onClick={() => {
-                dispatch({ type: ReducerAction.Reset });
-              }}
-            >
-              Reset
-            </button>
+      <div className="container px-4 mx-auto py-6 max-w-screen-md space-y-4">
+        <header className="flex flex-col border-b pb-3 mb-4">
+          <div className="flex items-center mb-2">
+            <h2 className="text-3xl flex-grow">Nemesis</h2>
+            <div>
+              <button
+                className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex"
+                onClick={() => {
+                  dispatch({ type: ReducerAction.Reset });
+                }}
+              >
+                Reset
+              </button>
+            </div>
           </div>
+          <ul className="flex space-x-3">
+            <li>
+              <strong>Wins:</strong> {record.wins.length}
+            </li>
+            <li>
+              <strong>Losses:</strong> {record.losses.length}
+            </li>
+          </ul>
         </header>
         <form
           onSubmit={(ev) => {
@@ -149,12 +239,15 @@ export default function Home() {
         >
           <div className="flex flex-col sm:flex-row mb-4">
             <div className="mb-3 sm:mb-0 sm:order-1">
-              <ul className="flex items-center space-x-2">
+              <ul className="sm:flex items-center sm:space-x-2">
                 <li>
                   <strong>Armageddon Charge:</strong> {state.charge}
                 </li>
                 <li>
                   <strong>Next Target:</strong> {config.aoe ? 'AOE' : 'Single'}
+                </li>
+                <li>
+                  <strong>Move Count:</strong> {state.previous_moves.length}
                 </li>
               </ul>
             </div>
@@ -177,6 +270,7 @@ export default function Home() {
                   onClick={() => {
                     dispatch({ type: ReducerAction.SelectSpecial });
                   }}
+                  icon={<GiBroadsword />}
                 >
                   <span>{state.next_move}</span>
                 </Button>
@@ -185,6 +279,7 @@ export default function Home() {
                     onClick={() => {
                       dispatch({ type: ReducerAction.SelectBasic });
                     }}
+                    icon={<GiBroadsword />}
                   >
                     {Attack.Basic}
                   </Button>
@@ -192,6 +287,34 @@ export default function Home() {
               </>
             )}
           </div>
+        </form>
+        <form
+          className="border-t pt-4"
+          action=""
+          onSubmit={(ev) => {
+            ev.preventDefault();
+          }}
+        >
+          <ul className="flex items-center justify-between">
+            <li>
+              <Button
+                icon={<FaCheck />}
+                variant="Success"
+                onClick={handleFightRecord('RECORD_WIN')}
+              >
+                Won
+              </Button>
+            </li>
+            <li>
+              <Button
+                icon={<FaTimes />}
+                variant="Error"
+                onClick={handleFightRecord('RECORD_LOSS')}
+              >
+                Lost
+              </Button>
+            </li>
+          </ul>
         </form>
       </div>
     </>
