@@ -2,7 +2,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import * as React from 'react';
 
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { FaFrown, FaRedo, FaSmile } from 'react-icons/fa';
 import { ToastContainer, ToastContent, toast } from 'react-toastify';
 
 import { GiBroadsword } from 'react-icons/gi';
@@ -173,7 +173,7 @@ function Button({
   return (
     <button
       className={classNames(
-        'inline-flex text-white font-bold rounded px-6 h-14 items-center space-x-2',
+        'inline-flex text-white font-bold rounded px-6 h-12 items-center space-x-2',
         { 'bg-blue-700 ': variant === 'Default' },
         { 'bg-green-700': variant === 'Success' },
         { 'bg-red-700': variant === 'Error' }
@@ -236,18 +236,19 @@ export default function Home() {
           <h1 className="font-bold">FFX HD Superboss Fight Tracker</h1>
         </div>
       </header>
-      <div className="container px-4 mx-auto py-6 max-w-screen-md space-y-4">
+      <div className="container px-6 mx-auto py-6 max-w-screen-md space-y-6">
         <header className="flex flex-col border-b pb-3 mb-4">
           <div className="flex items-center mb-2">
             <h2 className="text-3xl flex-grow">Nemesis</h2>
             <div>
               <button
-                className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex text-sm"
+                className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex items-center space-x-2 text-sm"
                 onClick={() => {
                   dispatch({ type: ReducerAction.Reset });
                 }}
               >
-                Reset
+                <FaRedo size={12} className="text-black text-opacity-75" />
+                <span>Reset</span>
               </button>
             </div>
           </div>
@@ -327,7 +328,7 @@ export default function Home() {
           <ul className="flex items-center justify-between">
             <li>
               <Button
-                icon={<FaCheck />}
+                icon={<FaSmile />}
                 variant="Success"
                 onClick={handleFightRecord('RECORD_WIN')}
               >
@@ -336,7 +337,7 @@ export default function Home() {
             </li>
             <li>
               <Button
-                icon={<FaTimes />}
+                icon={<FaFrown />}
                 variant="Error"
                 onClick={handleFightRecord('RECORD_LOSS')}
               >
