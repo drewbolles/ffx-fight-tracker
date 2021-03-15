@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import Head from 'next/head';
 
-enum Attacks {
+enum Attack {
   EC = 'Ethereal Cannon',
   US = 'Ultra Spark',
   Arm = 'Armageddon',
@@ -10,36 +10,36 @@ enum Attacks {
 }
 
 type MoveConfiguration = Record<
-  Attacks,
+  Attack,
   {
     charge_rate: number;
     aoe: boolean;
     chance_for_basic: boolean;
-    next_move?: Attacks;
+    next_move?: Attack;
     reset_charge?: boolean;
   }
 >;
 
 const MOVE_CONFIUGRATION: MoveConfiguration = {
-  [Attacks.EC]: {
+  [Attack.EC]: {
     charge_rate: 2,
     aoe: false,
     chance_for_basic: true,
-    next_move: Attacks.US,
+    next_move: Attack.US,
   },
-  [Attacks.US]: {
+  [Attack.US]: {
     charge_rate: 2,
     aoe: true,
     chance_for_basic: true,
-    next_move: Attacks.Basic,
+    next_move: Attack.Basic,
   },
-  [Attacks.Basic]: {
+  [Attack.Basic]: {
     charge_rate: 3,
     aoe: false,
     chance_for_basic: false,
-    next_move: Attacks.EC,
+    next_move: Attack.EC,
   },
-  [Attacks.Arm]: {
+  [Attack.Arm]: {
     charge_rate: 0,
     aoe: true,
     chance_for_basic: false,
@@ -47,27 +47,28 @@ const MOVE_CONFIUGRATION: MoveConfiguration = {
   },
 };
 
-enum ReducerActions {
+enum ReducerAction {
   SelectSpecial = 'SELECT_SPECIAL',
   SelectBasic = 'SELECT_BASIC',
   SelectArm = 'SELECT_ARMAGEDDON',
   Reset = 'RESET',
 }
+
 interface State {
-  next_move: Attacks;
-  previous_moves: Attacks[];
+  next_move: Attack;
+  previous_moves: Attack[];
   charge: number;
 }
 
 const initialState: State = {
-  next_move: Attacks.EC,
+  next_move: Attack.EC,
   previous_moves: [],
   charge: 0,
 };
 
 function reducer(state: State, { type }) {
   switch (type) {
-    case ReducerActions.SelectSpecial: {
+    case ReducerAction.SelectSpecial: {
       const config = MOVE_CONFIUGRATION[state.next_move];
       return {
         next_move: config.next_move,
@@ -75,26 +76,29 @@ function reducer(state: State, { type }) {
         previous_moves: [...state.previous_moves, state.next_move],
       };
     }
-    case ReducerActions.SelectBasic: {
+
+    case ReducerAction.SelectBasic: {
       const currentConfig = MOVE_CONFIUGRATION[state.next_move];
-      const basicConfig = MOVE_CONFIUGRATION[Attacks.Basic];
+      const basicConfig = MOVE_CONFIUGRATION[Attack.Basic];
       return {
         next_move:
-          state.next_move === Attacks.Basic
+          state.next_move === Attack.Basic
             ? currentConfig.next_move
             : state.next_move,
         charge: state.charge + basicConfig.charge_rate,
         previous_moves: [...state.previous_moves, state.next_move],
       };
     }
-    case ReducerActions.SelectArm: {
+
+    case ReducerAction.SelectArm: {
       return {
         ...state,
         charge: 0,
-        previous_moves: [...state.previous_moves, Attacks.Arm],
+        previous_moves: [...state.previous_moves, Attack.Arm],
       };
     }
-    case ReducerActions.Reset:
+
+    case ReducerAction.Reset:
       return initialState;
   }
   return state;
@@ -130,7 +134,7 @@ export default function Home() {
             <button
               className="border border-blue-100 rounded bg-blue-50 px-4 py-1 inline-flex"
               onClick={() => {
-                dispatch({ type: ReducerActions.Reset });
+                dispatch({ type: ReducerAction.Reset });
               }}
             >
               Reset
@@ -162,7 +166,7 @@ export default function Home() {
             {state.charge === 21 ? (
               <Button
                 onClick={() => {
-                  dispatch({ type: ReducerActions.SelectArm });
+                  dispatch({ type: ReducerAction.SelectArm });
                 }}
               >
                 Armageddon
@@ -171,7 +175,7 @@ export default function Home() {
               <>
                 <Button
                   onClick={() => {
-                    dispatch({ type: ReducerActions.SelectSpecial });
+                    dispatch({ type: ReducerAction.SelectSpecial });
                   }}
                 >
                   <span>{state.next_move}</span>
@@ -179,10 +183,10 @@ export default function Home() {
                 {config.chance_for_basic ? (
                   <Button
                     onClick={() => {
-                      dispatch({ type: ReducerActions.SelectBasic });
+                      dispatch({ type: ReducerAction.SelectBasic });
                     }}
                   >
-                    {Attacks.Basic}
+                    {Attack.Basic}
                   </Button>
                 ) : null}
               </>
