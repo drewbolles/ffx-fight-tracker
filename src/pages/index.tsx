@@ -8,6 +8,7 @@ import { ToastContainer, ToastContent, toast } from 'react-toastify';
 import { GiBroadsword } from 'react-icons/gi';
 import Head from 'next/head';
 import classNames from 'classnames';
+import localForage from 'localforage';
 
 enum Attack {
   EC = 'Ethereal Cannon',
@@ -59,6 +60,7 @@ enum ReducerAction {
   SelectBasic = 'SELECT_BASIC',
   SelectArm = 'SELECT_ARMAGEDDON',
   Reset = 'RESET',
+  Load = 'LOAD',
 }
 
 interface FightState {
@@ -69,6 +71,7 @@ interface FightState {
 
 interface FightAction {
   type: ReducerAction;
+  payload?: FightState;
 }
 
 const initialFightState: FightState = {
@@ -82,7 +85,7 @@ interface FightRecord {
   timestamp: string;
 }
 
-type RecordReducerAction = 'RECORD_WIN' | 'RECORD_LOSS';
+type RecordReducerAction = 'RECORD_WIN' | 'RECORD_LOSS' | 'LOAD';
 
 interface RecordState {
   wins: FightRecord[];
@@ -91,7 +94,7 @@ interface RecordState {
 
 interface RecordAction {
   type: RecordReducerAction;
-  payload?: FightRecord;
+  payload?: FightRecord | RecordState;
 }
 
 const initialRecordState: RecordState = {
@@ -99,14 +102,22 @@ const initialRecordState: RecordState = {
   losses: [],
 };
 
+function persistState<TState>(key: string, state: TState) {
+  localForage.setItem(key, state);
+  return state;
+}
+
+const RECORD_STATE_KEY = 'ffx_fight_tracker.record';
+const FIGHT_STATE_KEY = 'ffx_fight_tracker.fight';
+
 function recordReducer(dispatch: React.Dispatch<FightAction>) {
-  return (state: RecordState, { type, payload }: RecordAction) => {
+  return (state: RecordState, { type, payload }: RecordAction): RecordState => {
     const handleUpdate = (type: keyof RecordState) => {
       dispatch({ type: ReducerAction.Reset });
-      return {
+      return persistState<RecordState>(RECORD_STATE_KEY, {
         ...state,
         [type]: [...state[type], payload],
-      };
+      });
     };
 
     switch (type) {
@@ -114,49 +125,62 @@ function recordReducer(dispatch: React.Dispatch<FightAction>) {
         return handleUpdate('wins');
       case 'RECORD_LOSS':
         return handleUpdate('losses');
+      case 'LOAD':
+        return payload as RecordState;
     }
   };
 }
 
-function fightReducer(state: FightState, { type }) {
+function fightReducer(
+  state: FightState,
+  { type, payload }: { type: ReducerAction; payload?: FightState }
+) {
+  const persistFightState = (state: FightState) =>
+    persistState<FightState>(FIGHT_STATE_KEY, state);
+
   switch (type) {
     case ReducerAction.SelectSpecial: {
       const config = MOVE_CONFIUGRATION[state.next_move];
       toast.success(`${state.next_move} used!`);
-      return {
+      return persistFightState({
         next_move: config.next_move,
         charge: state.charge + config.charge_rate,
         previous_moves: [...state.previous_moves, state.next_move],
-      };
+      });
     }
 
     case ReducerAction.SelectBasic: {
       const currentConfig = MOVE_CONFIUGRATION[state.next_move];
       const basicConfig = MOVE_CONFIUGRATION[Attack.Basic];
       toast.success(`${Attack.Basic} used!`);
-      return {
+      return persistFightState({
         next_move:
           state.next_move === Attack.Basic
             ? currentConfig.next_move
             : state.next_move,
         charge: state.charge + basicConfig.charge_rate,
         previous_moves: [...state.previous_moves, state.next_move],
-      };
+      });
     }
 
     case ReducerAction.SelectArm: {
       toast.success(`${Attack.Arm} used!`);
-      return {
+      return persistFightState({
         ...state,
         charge: 0,
         previous_moves: [...state.previous_moves, Attack.Arm],
-      };
+      });
     }
 
     case ReducerAction.Reset:
-      return initialFightState;
+      return persistFightState(initialFightState);
+
+    case ReducerAction.Load:
+      return payload;
+
+    default:
+      return state;
   }
-  return state;
 }
 
 type ButtonVariants = 'Default' | 'Success' | 'Error';
@@ -198,6 +222,10 @@ const TOASTS: Record<
     type: 'error',
     message: 'Loss recorded',
   },
+  LOAD: {
+    type: 'success',
+    message: 'State loaded',
+  },
 };
 
 export default function Home() {
@@ -225,6 +253,27 @@ export default function Home() {
       });
     };
   }
+
+  /**
+   * More-or-less the "recommended" way to interact with asynchronous data (in this case localForage)
+   * is via useEffect. useReducer's third argument doesn't allow for this behavior.
+   */
+  React.useEffect(() => {
+    (async () => {
+      const [localState, localRecord] = await Promise.all([
+        localForage.getItem(FIGHT_STATE_KEY) as Promise<FightState>,
+        localForage.getItem(RECORD_STATE_KEY) as Promise<RecordState>,
+      ]);
+
+      if (localState) {
+        dispatch({ type: ReducerAction.Load, payload: localState });
+      }
+
+      if (localRecord) {
+        dispatchRecord({ type: 'LOAD', payload: localRecord });
+      }
+    })();
+  }, []);
 
   return (
     <>
